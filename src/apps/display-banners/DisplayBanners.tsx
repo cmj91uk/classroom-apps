@@ -19,6 +19,7 @@ import {
   bannerContentIsRotated,
   getSlotRects,
   generateDisplayBannersPdf,
+  type BannerItem,
   type BannersPerPage,
 } from './lib/pdf'
 import { buildBannerSvg } from './lib/preview'
@@ -27,50 +28,87 @@ import { DEFAULT_SHAPE_ID, getBannerShape, type BannerShapeId } from './lib/shap
 const A4_WIDTH_MM = 297
 const A4_HEIGHT_MM = 210
 
+function createBannerItem(text = ''): BannerItem {
+  return { text, textColor: DEFAULT_TEXT_COLOR }
+}
+
+function resizeBanners(
+  current: BannerItem[],
+  count: BannersPerPage,
+): BannerItem[] {
+  if (current.length === count) {
+    return current
+  }
+  if (current.length > count) {
+    return current.slice(0, count)
+  }
+  return [
+    ...current,
+    ...Array.from({ length: count - current.length }, () => createBannerItem()),
+  ]
+}
+
 export function DisplayBanners() {
   useDocumentTitle('Display Banners')
 
-  const textId = useId()
+  const bannersHeadingId = useId()
   const bannersPerPageId = useId()
   const fontId = useId()
   const shapeIdLabel = useId()
-  const colorsId = useId()
+  const outlineId = useId()
 
-  const [text, setText] = useState('Welcome')
   const [bannersPerPage, setBannersPerPage] = useState<BannersPerPage>(1)
+  const [banners, setBanners] = useState<BannerItem[]>([
+    createBannerItem('Welcome'),
+  ])
   const [fontOptionId, setFontOptionId] = useState(DEFAULT_FONT_ID)
   const [shapeId, setShapeId] = useState<BannerShapeId>(DEFAULT_SHAPE_ID)
   const [shapeColor, setShapeColor] = useState(DEFAULT_SHAPE_COLOR)
-  const [textColor, setTextColor] = useState(DEFAULT_TEXT_COLOR)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const selectedFont = getDisplayFont(fontOptionId)
   const selectedShape = getBannerShape(shapeId)
-  const hasText = text.trim().length > 0
+  const hasText = banners.some((banner) => banner.text.trim().length > 0)
   const slots = getSlotRects(bannersPerPage, A4_WIDTH_MM, A4_HEIGHT_MM)
 
   useEffect(() => {
     ensureDisplayFontsLoaded()
   }, [])
 
+  function handleBannersPerPageChange(count: BannersPerPage) {
+    setBannersPerPage(count)
+    setBanners((current) => resizeBanners(current, count))
+    setError(null)
+  }
+
+  function updateBanner(index: number, patch: Partial<BannerItem>) {
+    setBanners((current) =>
+      current.map((banner, bannerIndex) =>
+        bannerIndex === index ? { ...banner, ...patch } : banner,
+      ),
+    )
+    setError(null)
+  }
+
   async function handleDownload() {
     setError(null)
     setIsGenerating(true)
     try {
+      const firstText =
+        banners.find((banner) => banner.text.trim().length > 0)?.text ?? ''
       const slug =
-        text
+        firstText
           .trim()
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-|-$/g, '')
           .slice(0, 40) || 'banner'
       await generateDisplayBannersPdf({
-        text,
+        banners,
         shapeId,
         fontFamily: selectedFont.family,
         shapeColor,
-        textColor,
         bannersPerPage,
         filename: `${slug}-banners.pdf`,
       })
@@ -102,38 +140,6 @@ export function DisplayBanners() {
       </header>
 
       <main className="flex flex-1 flex-col gap-8">
-        <section className="flex flex-col gap-3">
-          <label htmlFor={textId} className="text-sm font-medium text-ink">
-            Banner text
-          </label>
-          <textarea
-            id={textId}
-            value={text}
-            rows={3}
-            maxLength={80}
-            autoComplete="off"
-            spellCheck={true}
-            placeholder="e.g. Welcome"
-            onChange={(event) => {
-              setText(event.target.value)
-              setError(null)
-            }}
-            className="w-full resize-y rounded-lg border border-beige-dark/40 bg-white px-4 py-3 text-lg text-ink outline-none ring-beige-dark/30 placeholder:text-muted/50 focus:ring-2"
-          />
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <span id={shapeIdLabel} className="text-sm font-medium text-ink">
-            Shape
-          </span>
-          <ShapePicker
-            value={shapeId}
-            shapeColor={shapeColor}
-            labelledBy={shapeIdLabel}
-            onChange={setShapeId}
-          />
-        </section>
-
         <section className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             <span
@@ -154,7 +160,7 @@ export function DisplayBanners() {
                     key={count}
                     type="button"
                     aria-pressed={selected}
-                    onClick={() => setBannersPerPage(count)}
+                    onClick={() => handleBannersPerPageChange(count)}
                     className={[
                       'flex-1 rounded-md px-3 py-2 text-sm font-medium transition',
                       selected
@@ -185,55 +191,113 @@ export function DisplayBanners() {
         </section>
 
         <section className="flex flex-col gap-3">
+          <span id={shapeIdLabel} className="text-sm font-medium text-ink">
+            Shape
+          </span>
+          <ShapePicker
+            value={shapeId}
+            shapeColor={shapeColor}
+            labelledBy={shapeIdLabel}
+            onChange={setShapeId}
+          />
+        </section>
+
+        <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
-            <span id={colorsId} className="text-sm font-medium text-ink">
-              Colours
+            <span id={outlineId} className="text-sm font-medium text-ink">
+              Outline colour
             </span>
             <button
               type="button"
               onClick={() => {
                 setShapeColor(DEFAULT_SHAPE_COLOR)
-                setTextColor(DEFAULT_TEXT_COLOR)
+                setBanners((current) =>
+                  current.map((banner) => ({
+                    ...banner,
+                    textColor: DEFAULT_TEXT_COLOR,
+                  })),
+                )
               }}
               className="rounded-md border border-beige-dark/40 bg-white px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-beige/40"
             >
               Reset colours
             </button>
           </div>
-          <div
-            role="group"
-            aria-labelledby={colorsId}
-            className="grid grid-cols-2 gap-3"
-          >
+          <div role="group" aria-labelledby={outlineId} className="max-w-xs">
             <ColorField
               label="Outline"
               value={shapeColor}
               presetColors={BANNER_COLOR_PRESETS}
               onChange={setShapeColor}
             />
-            <ColorField
-              label="Text"
-              value={textColor}
-              presetColors={BANNER_COLOR_PRESETS}
-              onChange={setTextColor}
-            />
           </div>
+        </section>
+
+        <section className="flex flex-col gap-3" aria-labelledby={bannersHeadingId}>
+          <h2 id={bannersHeadingId} className="text-sm font-medium text-ink">
+            Banner text
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {banners.map((banner, index) => (
+              <li
+                key={index}
+                className="flex items-start gap-2 rounded-lg border border-beige-dark/30 bg-white p-2"
+              >
+                {bannersPerPage > 1 ? (
+                  <span className="mt-2.5 w-6 shrink-0 text-center text-xs text-muted">
+                    {index + 1}
+                  </span>
+                ) : null}
+                <textarea
+                  value={banner.text}
+                  rows={bannersPerPage === 1 ? 3 : 2}
+                  maxLength={80}
+                  autoComplete="off"
+                  spellCheck={true}
+                  aria-label={
+                    bannersPerPage === 1
+                      ? 'Banner text'
+                      : `Banner ${index + 1} text`
+                  }
+                  placeholder="e.g. Welcome"
+                  onChange={(event) =>
+                    updateBanner(index, { text: event.target.value })
+                  }
+                  className="min-w-0 flex-1 resize-y rounded-md border border-beige-dark/30 bg-white px-3 py-2 text-base text-ink outline-none ring-beige-dark/30 placeholder:text-muted/50 focus:ring-2"
+                  style={{
+                    fontFamily: selectedFont.family,
+                    color: banner.textColor,
+                  }}
+                />
+                <ColorField
+                  compact
+                  label={
+                    bannersPerPage === 1
+                      ? 'Text colour'
+                      : `Banner ${index + 1} text colour`
+                  }
+                  value={banner.textColor}
+                  presetColors={BANNER_COLOR_PRESETS}
+                  onChange={(hex) => updateBanner(index, { textColor: hex })}
+                />
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section aria-label="Page preview" className="flex flex-col gap-3">
           <h2 className="text-sm font-medium text-ink">Preview</h2>
           {hasText ? (
             <div className="overflow-hidden rounded-lg border border-beige-dark/30 bg-white shadow-sm">
-              <div
-                className="relative mx-auto aspect-[297/210] w-full bg-white"
-              >
+              <div className="relative mx-auto aspect-[297/210] w-full bg-white">
                 {slots.map((slot, index) => {
+                  const banner = banners[index] ?? createBannerItem()
                   const svg = buildBannerSvg({
-                    text,
+                    text: banner.text,
                     shapeId,
                     fontFamily: selectedFont.family,
                     shapeColor,
-                    textColor,
+                    textColor: banner.textColor,
                     width: slot.width * 4,
                     height: slot.height * 4,
                     rotate90: bannerContentIsRotated(bannersPerPage),
