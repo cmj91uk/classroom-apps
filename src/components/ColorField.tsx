@@ -1,5 +1,5 @@
 import { Sketch } from '@uiw/react-color'
-import { useEffect, useId, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
 
 type ColorFieldProps = {
   label: string
@@ -8,6 +8,7 @@ type ColorFieldProps = {
   onChange: (hex: string) => void
   compact?: boolean
   showLabel?: boolean
+  icon?: ReactNode
 }
 
 export function ColorField({
@@ -17,6 +18,7 @@ export function ColorField({
   onChange,
   compact = false,
   showLabel = true,
+  icon,
 }: ColorFieldProps) {
   const labelId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -57,10 +59,17 @@ export function ColorField({
         onClick={() => setOpen((current) => !current)}
         className={
           compact
-            ? 'flex size-10 shrink-0 items-center justify-center rounded-lg border border-beige-dark/40 bg-white outline-none ring-beige-dark/30 focus:ring-2'
+            ? icon
+              ? 'flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-beige-dark/40 bg-white px-2 outline-none ring-beige-dark/30 focus:ring-2'
+              : 'flex size-10 shrink-0 items-center justify-center rounded-lg border border-beige-dark/40 bg-white outline-none ring-beige-dark/30 focus:ring-2'
             : 'flex w-full items-center gap-3 rounded-lg border border-beige-dark/40 bg-white px-3 py-2.5 text-left outline-none ring-beige-dark/30 focus:ring-2'
         }
       >
+        {icon ? (
+          <span className="shrink-0 text-ink" aria-hidden="true">
+            {icon}
+          </span>
+        ) : null}
         <span
           className={
             compact

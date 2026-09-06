@@ -4,7 +4,8 @@ import { primaryFontName, waitForFont } from '../../../lib/fonts'
 export type DrawerLabel = {
   id: string
   name: string
-  color: string
+  textColor: string
+  outlineColor: string
 }
 
 export const LABELS_PER_PAGE = 4
@@ -54,7 +55,8 @@ function mmToPx(mm: number): number {
 
 async function renderLabelJpeg(
   name: string,
-  color: string,
+  textColor: string,
+  outlineColor: string,
   fontFamily: string,
   widthMm: number,
   heightMm: number,
@@ -85,7 +87,7 @@ async function renderLabelJpeg(
   ctx.fillRect(0, 0, width, height)
 
   const inset = stroke / 2
-  ctx.strokeStyle = color
+  ctx.strokeStyle = outlineColor
   ctx.lineWidth = stroke
   ctx.beginPath()
   ctx.roundRect(
@@ -106,7 +108,7 @@ async function renderLabelJpeg(
     let fontSize = maxFontSize
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = color
+    ctx.fillStyle = textColor
 
     while (fontSize > minFontSize) {
       ctx.font = `${LABEL_FONT_WEIGHT} ${fontSize}px ${fontFamily}`
@@ -169,12 +171,13 @@ export async function generateDrawerLabelsPdf({
     for (let i = 0; i < chunk.length; i++) {
       const label = chunk[i]!
       const slot = slots[i]!
-      const cacheKey = `${label.name}|${label.color}|${fontFamily}|${slot.width}|${slot.height}`
+      const cacheKey = `${label.name}|${label.textColor}|${label.outlineColor}|${fontFamily}|${slot.width}|${slot.height}`
       let imageData = imageCache.get(cacheKey)
       if (!imageData) {
         imageData = await renderLabelJpeg(
           label.name,
-          label.color,
+          label.textColor,
+          label.outlineColor,
           fontFamily,
           slot.width,
           slot.height,

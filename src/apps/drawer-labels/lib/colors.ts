@@ -1,4 +1,5 @@
 export const DEFAULT_LABEL_COLOR = '#1d4ed8'
+export const DEFAULT_TEXT_COLOR = '#000000'
 
 /** Stronger colours for readable label text and outlines. */
 export const LABEL_COLOR_PRESETS = [

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { RiFontSize, RiSquareLine } from 'react-icons/ri'
 import { Link } from 'react-router'
 import { ColorField } from '../../components/ColorField'
 import { FontPicker } from '../../components/FontPicker'
@@ -8,7 +9,11 @@ import {
   getDisplayFont,
 } from '../../lib/fonts'
 import { useDocumentTitle } from '../../useDocumentTitle'
-import { DEFAULT_LABEL_COLOR, LABEL_COLOR_PRESETS } from './lib/colors'
+import {
+  DEFAULT_LABEL_COLOR,
+  DEFAULT_TEXT_COLOR,
+  LABEL_COLOR_PRESETS,
+} from './lib/colors'
 import {
   generateDrawerLabelsPdf,
   LABEL_HEIGHT_MM,
@@ -25,11 +30,12 @@ import {
   type DrawerLabelsProject,
 } from './lib/projects'
 
-function createLabel(name: string, color: string): DrawerLabel {
+function createLabel(name: string, outlineColor: string): DrawerLabel {
   return {
     id: crypto.randomUUID(),
     name,
-    color,
+    textColor: DEFAULT_TEXT_COLOR,
+    outlineColor,
   }
 }
 
@@ -85,7 +91,10 @@ export function DrawerLabels() {
     nameInputRef.current?.focus()
   }
 
-  function updateLabel(id: string, patch: Partial<Pick<DrawerLabel, 'name' | 'color'>>) {
+  function updateLabel(
+    id: string,
+    patch: Partial<Pick<DrawerLabel, 'name' | 'textColor' | 'outlineColor'>>,
+  ) {
     setLabels((current) =>
       current.map((label) => (label.id === id ? { ...label, ...patch } : label)),
     )
@@ -205,7 +214,7 @@ export function DrawerLabels() {
           Drawer Labels
         </h1>
         <p className="mt-3 max-w-xl text-base text-muted">
-          Add names, pick a font and colour, then print four labels per A4 page.
+          Add names, pick a font and colours, then print four labels per A4 page.
         </p>
       </header>
 
@@ -320,9 +329,9 @@ export function DrawerLabels() {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-ink">Default colour</span>
+            <span className="text-sm font-medium text-ink">Default outline colour</span>
             <ColorField
-              label="Default colour"
+              label="Default outline colour"
               value={defaultColor}
               presetColors={LABEL_COLOR_PRESETS}
               onChange={(hex) => {
@@ -331,6 +340,25 @@ export function DrawerLabels() {
               }}
               showLabel={false}
             />
+            <button
+              type="button"
+              disabled={
+                labels.length === 0 ||
+                labels.every((label) => label.outlineColor === defaultColor)
+              }
+              onClick={() => {
+                setLabels((current) =>
+                  current.map((label) => ({
+                    ...label,
+                    outlineColor: defaultColor,
+                  })),
+                )
+                setSaveNotice(null)
+              }}
+              className="rounded-lg border border-beige-dark/40 bg-white px-4 py-2.5 text-sm font-medium text-ink transition enabled:hover:bg-beige/40 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Apply to all labels
+            </button>
           </div>
         </section>
 
@@ -395,14 +423,25 @@ export function DrawerLabels() {
                       updateLabel(label.id, { name: event.target.value })
                     }
                     className="min-w-0 flex-1 rounded-md border border-beige-dark/30 bg-white px-3 py-2 text-base text-ink outline-none ring-beige-dark/30 focus:ring-2"
-                    style={{ fontFamily: selectedFont.family, color: label.color }}
+                    style={{ fontFamily: selectedFont.family, color: label.textColor }}
                   />
                   <ColorField
                     compact
-                    label={`Label ${index + 1} colour`}
-                    value={label.color}
+                    label={`Label ${index + 1} text colour`}
+                    value={label.textColor}
                     presetColors={LABEL_COLOR_PRESETS}
-                    onChange={(hex) => updateLabel(label.id, { color: hex })}
+                    onChange={(hex) => updateLabel(label.id, { textColor: hex })}
+                    icon={<RiFontSize size={18} />}
+                  />
+                  <ColorField
+                    compact
+                    label={`Label ${index + 1} outline colour`}
+                    value={label.outlineColor}
+                    presetColors={LABEL_COLOR_PRESETS}
+                    onChange={(hex) =>
+                      updateLabel(label.id, { outlineColor: hex })
+                    }
+                    icon={<RiSquareLine size={18} />}
                   />
                   <button
                     type="button"
@@ -447,7 +486,7 @@ export function DrawerLabels() {
                           className="flex w-full shrink-0 items-center justify-center rounded-md border-2 px-2"
                           style={{
                             aspectRatio: `${210 - PAGE_MARGIN_X_MM * 2} / ${LABEL_HEIGHT_MM}`,
-                            borderColor: label?.color ?? '#e7ded2',
+                            borderColor: label?.outlineColor ?? '#e7ded2',
                             borderStyle: label ? 'solid' : 'dashed',
                           }}
                         >
@@ -456,7 +495,7 @@ export function DrawerLabels() {
                               className="max-w-full truncate text-center text-2xl leading-none sm:text-3xl"
                               style={{
                                 fontFamily: selectedFont.family,
-                                color: label.color,
+                                color: label.textColor,
                               }}
                             >
                               {label.name}
