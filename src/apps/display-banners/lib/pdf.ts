@@ -223,26 +223,29 @@ async function renderBannerJpeg(
   return canvas.toDataURL('image/jpeg', JPEG_QUALITY)
 }
 
-export type GenerateDisplayBannersPdfOptions = {
+export type BannerItem = {
   text: string
+  textColor: string
+}
+
+export type GenerateDisplayBannersPdfOptions = {
+  banners: BannerItem[]
   shapeId: BannerShapeId
   fontFamily?: string
   shapeColor?: string
-  textColor?: string
   bannersPerPage?: BannersPerPage
   filename?: string
 }
 
 export async function generateDisplayBannersPdf({
-  text,
+  banners,
   shapeId,
   fontFamily = '"Baloo 2", sans-serif',
   shapeColor = '#000000',
-  textColor = '#000000',
   bannersPerPage = 1,
   filename = 'display-banners.pdf',
 }: GenerateDisplayBannersPdfOptions): Promise<void> {
-  if (text.trim().length === 0) {
+  if (!banners.some((banner) => banner.text.trim().length > 0)) {
     throw new Error('Enter some text to generate a PDF.')
   }
 
@@ -260,16 +263,18 @@ export async function generateDisplayBannersPdf({
   const rotate90 = bannerContentIsRotated(bannersPerPage)
   const imageCache = new Map<string, string>()
 
-  for (const slot of slots) {
-    const cacheKey = `${slot.width}|${slot.height}|${rotate90}`
+  for (let index = 0; index < slots.length; index++) {
+    const slot = slots[index]!
+    const banner = banners[index] ?? { text: '', textColor: '#000000' }
+    const cacheKey = `${banner.text}|${banner.textColor}|${slot.width}|${slot.height}|${rotate90}`
     let imageData = imageCache.get(cacheKey)
     if (!imageData) {
       imageData = await renderBannerJpeg(
-        text,
+        banner.text,
         shapeId,
         fontFamily,
         shapeColor,
-        textColor,
+        banner.textColor,
         slot,
         rotate90,
       )
