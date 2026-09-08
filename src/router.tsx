@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router'
+import { AdditionSubtractionWorksheets } from './apps/addition-subtraction-worksheets/AdditionSubtractionWorksheets'
 import { DisplayBanners } from './apps/display-banners/DisplayBanners'
 import { BuntingLetters } from './apps/bunting-letters/BuntingLetters'
 import { DrawerLabels } from './apps/drawer-labels/DrawerLabels'
@@ -25,6 +26,10 @@ export const router = createBrowserRouter(
         { path: 'apps/drawer-labels', Component: DrawerLabels },
         { path: 'apps/label-designer', Component: LabelDesigner },
         { path: 'apps/display-banners', Component: DisplayBanners },
+        {
+          path: 'apps/addition-subtraction-worksheets',
+          Component: AdditionSubtractionWorksheets,
+        },
         { path: '*', Component: NotFoundPage },
       ],
     },

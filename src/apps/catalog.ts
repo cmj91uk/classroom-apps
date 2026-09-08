@@ -33,4 +33,10 @@ export const MINI_APPS: MiniApp[] = [
     description: 'Create posters for displays with shapes and text',
     path: '/apps/display-banners',
   },
+  {
+    id: 'addition-subtraction-worksheets',
+    title: 'Addition & Subtraction Worksheets',
+    description: 'Two digit addition and subtraction worksheets',
+    path: '/apps/addition-subtraction-worksheets',
+  },
 ]
