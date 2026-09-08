@@ -4,6 +4,7 @@ import { DisplayBanners } from './apps/display-banners/DisplayBanners'
 import { BuntingLetters } from './apps/bunting-letters/BuntingLetters'
 import { DrawerLabels } from './apps/drawer-labels/DrawerLabels'
 import { LabelDesigner } from './apps/label-designer/LabelDesigner'
+import { PartPartWholeWorksheets } from './apps/part-part-whole-worksheets/PartPartWholeWorksheets'
 import { App } from './App'
 import { LandingPage } from './pages/LandingPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -29,6 +30,10 @@ export const router = createBrowserRouter(
         {
           path: 'apps/addition-subtraction-worksheets',
           Component: AdditionSubtractionWorksheets,
+        },
+        {
+          path: 'apps/part-part-whole-worksheets',
+          Component: PartPartWholeWorksheets,
         },
         { path: '*', Component: NotFoundPage },
       ],

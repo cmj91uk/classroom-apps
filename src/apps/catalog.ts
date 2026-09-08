@@ -39,4 +39,10 @@ export const MINI_APPS: MiniApp[] = [
     description: 'Two digit addition and subtraction worksheets',
     path: '/apps/addition-subtraction-worksheets',
   },
+  {
+    id: 'part-part-whole-worksheets',
+    title: 'Part Part Whole Worksheets',
+    description: 'Make Part Part Whole worksheets quickly and easily',
+    path: '/apps/part-part-whole-worksheets',
+  },
 ]
