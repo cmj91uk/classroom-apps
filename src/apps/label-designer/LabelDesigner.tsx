@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
-import { Link } from 'react-router'
+import { AppHeader } from '../../components/AppHeader'
 import { ColorField } from '../../components/ColorField'
 import { useDocumentTitle } from '../../useDocumentTitle'
 import { DatePicker } from './components/DatePicker'
@@ -185,25 +185,13 @@ export function LabelDesigner() {
   }
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-3xl flex-col px-4 py-10 sm:px-6">
-      <header className="mb-10">
-        <Link
-          to="/"
-          className="mb-4 inline-block text-sm font-medium text-muted transition hover:text-ink"
-        >
-          ← All apps
-        </Link>
-        <p className="mb-2 text-sm font-medium tracking-wide text-muted uppercase">
-          Classroom printables
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-          Label Designer
-        </h1>
-        <p className="mt-3 max-w-xl text-base text-muted">
-          Build lesson-objective sticker sheets. Pick a layout, add objectives,
-          dates and icons, then print on A4 label paper.
-        </p>
-      </header>
+    <>
+      <AppHeader
+        backToApps
+        eyebrow="Classroom printables"
+        title="Label Designer"
+        subtitle="Build lesson-objective sticker sheets. Pick a layout, add objectives, dates and icons, then print on A4 label paper."
+      />
 
       <form
         onSubmit={handleSubmit(onSubmit)}
@@ -446,6 +434,6 @@ export function LabelDesigner() {
           </div>
         </section>
       </form>
-    </div>
+    </>
   )
 }

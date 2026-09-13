@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { RiFontSize, RiSquareLine } from 'react-icons/ri'
-import { Link } from 'react-router'
+import { AppHeader } from '../../components/AppHeader'
 import { ColorField } from '../../components/ColorField'
 import { FontPicker } from '../../components/FontPicker'
 import {
@@ -199,24 +199,13 @@ export function DrawerLabels() {
   )
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-3xl flex-col px-4 py-10 sm:px-6">
-      <header className="mb-10">
-        <Link
-          to="/"
-          className="mb-4 inline-block text-sm font-medium text-muted transition hover:text-ink"
-        >
-          ← All apps
-        </Link>
-        <p className="mb-2 text-sm font-medium tracking-wide text-muted uppercase">
-          Classroom printables
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-          Drawer Labels
-        </h1>
-        <p className="mt-3 max-w-xl text-base text-muted">
-          Add names, pick a font and colours, then print four labels per A4 page.
-        </p>
-      </header>
+    <>
+      <AppHeader
+        backToApps
+        eyebrow="Classroom printables"
+        title="Drawer Labels"
+        subtitle="Add names, pick a font and colours, then print four labels per A4 page."
+      />
 
       <main className="flex flex-1 flex-col gap-8">
         <section className="flex flex-col gap-3">
@@ -538,6 +527,6 @@ export function DrawerLabels() {
           </div>
         </section>
       </main>
-    </div>
+    </>
   )
 }
