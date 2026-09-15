@@ -1,13 +1,5 @@
-import { useEffect } from 'react'
-import { Outlet, useLocation } from 'react-router'
-import { refreshUserback } from './lib/userback'
+import { Outlet } from 'react-router'
 
 export function App() {
-  const location = useLocation()
-
-  useEffect(() => {
-    refreshUserback()
-  }, [location.pathname, location.search])
-
   return <Outlet />
 }
