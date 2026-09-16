@@ -1,24 +1,18 @@
 import { Link } from 'react-router'
 import { MINI_APPS } from '../apps/catalog'
+import { AppHeader } from '../components/AppHeader'
 import { useDocumentTitle } from '../useDocumentTitle'
 
 export function LandingPage() {
   useDocumentTitle('Classroom apps')
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-3xl flex-col px-4 py-10 sm:px-6">
-      <header className="mb-12">
-        <p className="mb-2 text-sm font-medium tracking-wide text-muted uppercase">
-          Classroom tools
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-          Mini apps for displays and printables
-        </h1>
-        <p className="mt-3 max-w-xl text-base text-muted">
-          Pick an app to get started. More classroom tools will land here over
-          time.
-        </p>
-      </header>
+    <>
+      <AppHeader
+        eyebrow="Classroom tools"
+        title="Mini apps for displays and printables"
+        subtitle="Pick an app to get started. More classroom tools will land here over time."
+      />
 
       <main>
         <ul className="grid gap-4 sm:grid-cols-2">
@@ -40,6 +34,6 @@ export function LandingPage() {
           ))}
         </ul>
       </main>
-    </div>
+    </>
   )
 }

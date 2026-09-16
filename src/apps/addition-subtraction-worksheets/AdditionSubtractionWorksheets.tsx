@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react'
-import { Link } from 'react-router'
+import { AppHeader } from '../../components/AppHeader'
 import { ensureDisplayFontsLoaded } from '../../lib/fonts'
 import { useDocumentTitle } from '../../useDocumentTitle'
 import {
@@ -152,22 +152,13 @@ export function AdditionSubtractionWorksheets() {
   }
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-3xl flex-col px-4 py-10 sm:px-6">
-      <header className="mb-10">
-        <Link
-          to="/"
-          className="mb-4 inline-block text-sm font-medium text-muted transition hover:text-ink"
-        >
-          ← All apps
-        </Link>
-        <p className="mb-2 text-sm font-medium tracking-wide text-muted uppercase">
-          Classroom printables
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-          {TITLE}
-        </h1>
-        <p className="mt-3 max-w-xl text-base text-muted">{DESCRIPTION}</p>
-      </header>
+    <>
+      <AppHeader
+        backToApps
+        eyebrow="Classroom printables"
+        title={TITLE}
+        subtitle={DESCRIPTION}
+      />
 
       <main className="flex flex-1 flex-col gap-8">
         <section className="grid gap-6 sm:grid-cols-2">
@@ -378,6 +369,6 @@ export function AdditionSubtractionWorksheets() {
           </div>
         </section>
       </main>
-    </div>
+    </>
   )
 }

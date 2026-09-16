@@ -70,8 +70,8 @@ Existing app styling should be carried through to the app
 
 Copy the layout from `BuntingLetters`, `DrawerLabels`, or `LabelDesigner`:
 
-- Page: `mx-auto flex min-h-svh max-w-3xl flex-col px-4 py-10 sm:px-6`
-- Header: `← All apps` `Link` to `/`, then uppercase eyebrow (`text-sm font-medium tracking-wide text-muted uppercase`), `h1` (`text-3xl font-bold tracking-tight text-ink sm:text-4xl`), subtitle (`mt-3 max-w-xl text-base text-muted`)
+- Page shell comes from `App` (`mx-auto flex min-h-svh max-w-3xl flex-col px-4 py-10 sm:px-6`). Do not wrap the app in that layout again.
+- Header: `AppHeader` from `src/components/AppHeader.tsx` with `backToApps`, uppercase `eyebrow`, `title`, and `subtitle`. Do not copy a local `<header>` with `← All apps`.
 - Main: `flex flex-1 flex-col gap-8`
 - Sections: `flex flex-col gap-3`; labels `text-sm font-medium text-ink`
 - Inputs: `rounded-lg border border-beige-dark/40 bg-white … outline-none ring-beige-dark/30 … focus:ring-2` with `placeholder:text-muted/50`
@@ -94,6 +94,7 @@ Import these; do not duplicate them:
 
 | Need | Use |
 | --- | --- |
+| Page header + sign-in | `src/components/AppHeader.tsx` |
 | Colour picker | `src/components/ColorField.tsx` (`@uiw/react-color`) |
 | Font picker + font list | `src/components/FontPicker.tsx` and `src/lib/fonts.ts` (`ensureDisplayFontsLoaded`, `getDisplayFont`, `DEFAULT_FONT_ID`) |
 | Custom select | `src/apps/label-designer/components/SelectMenu.tsx` |
