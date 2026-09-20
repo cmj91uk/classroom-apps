@@ -3,11 +3,17 @@ export type ProblemKind =
   | 'addition-carry'
   | 'subtraction-no-borrow'
   | 'subtraction-borrow'
+  | 'multiplication'
+
+export type Operator = '+' | '-' | '×'
+
+export type TopDigits = 1 | 2 | 3
+export type MultiplierDigits = 1 | 2
 
 export type WorksheetProblem = {
   left: number
   right: number
-  operator: '+' | '-'
+  operator: Operator
   answer: number
   kind: ProblemKind
 }
@@ -17,6 +23,9 @@ export type ProblemOptions = {
   additionCarry: boolean
   subtractionNoBorrow: boolean
   subtractionBorrow: boolean
+  multiplication: boolean
+  multiplicationTopDigits: TopDigits
+  multiplicationMultiplierDigits: MultiplierDigits
 }
 
 export function enabledKinds(options: ProblemOptions): ProblemKind[] {
@@ -33,6 +42,9 @@ export function enabledKinds(options: ProblemOptions): ProblemKind[] {
   if (options.subtractionBorrow) {
     kinds.push('subtraction-borrow')
   }
+  if (options.multiplication) {
+    kinds.push('multiplication')
+  }
   return kinds
 }
 
@@ -40,21 +52,47 @@ export function worksheetLetter(index: number): string {
   return String.fromCharCode(65 + index)
 }
 
-export function worksheetTitle(kinds: ProblemKind[]): string {
+function digitPhrase(digits: number): string {
+  return `${digits}-digit`
+}
+
+export function worksheetTitle(kinds: ProblemKind[], options: ProblemOptions): string {
   const hasAdd = kinds.some((kind) => kind.startsWith('addition'))
   const hasSub = kinds.some((kind) => kind.startsWith('subtraction'))
+  const hasMul = kinds.includes('multiplication')
 
-  if (hasAdd && !hasSub) {
+  if (hasMul && !hasAdd && !hasSub) {
+    return `Multiplying ${digitPhrase(options.multiplicationTopDigits)} by ${digitPhrase(options.multiplicationMultiplierDigits)} Numbers`
+  }
+  if (hasAdd && !hasSub && !hasMul) {
     return 'Adding 2-digit Numbers'
   }
-  if (hasSub && !hasAdd) {
+  if (hasSub && !hasAdd && !hasMul) {
     return 'Subtracting 2-digit Numbers'
   }
-  return 'Adding and Subtracting 2-digit Numbers'
+  if (hasAdd && hasSub && !hasMul) {
+    return 'Adding and Subtracting 2-digit Numbers'
+  }
+  if (hasAdd && hasMul && !hasSub) {
+    return 'Adding and Multiplying Numbers'
+  }
+  if (hasSub && hasMul && !hasAdd) {
+    return 'Subtracting and Multiplying Numbers'
+  }
+  return 'Calculation Practice'
 }
 
 function randomInt(min: number, maxInclusive: number): number {
   return min + Math.floor(Math.random() * (maxInclusive - min + 1))
+}
+
+function randomNDigit(digits: number): number {
+  if (digits <= 1) {
+    return randomInt(1, 9)
+  }
+  const min = 10 ** (digits - 1)
+  const max = 10 ** digits - 1
+  return randomInt(min, max)
 }
 
 function makeAddition(left: number, right: number, kind: ProblemKind): WorksheetProblem {
@@ -78,6 +116,16 @@ function makeSubtraction(
     operator: '-',
     answer: left - right,
     kind,
+  }
+}
+
+function makeMultiplication(left: number, right: number): WorksheetProblem {
+  return {
+    left,
+    right,
+    operator: '×',
+    answer: left * right,
+    kind: 'multiplication',
   }
 }
 
@@ -131,7 +179,17 @@ function randomSubtractionBorrow(): WorksheetProblem {
   )
 }
 
-function generateOne(kind: ProblemKind): WorksheetProblem {
+function randomMultiplication(
+  topDigits: TopDigits,
+  multiplierDigits: MultiplierDigits,
+): WorksheetProblem {
+  return makeMultiplication(
+    randomNDigit(topDigits),
+    randomNDigit(multiplierDigits),
+  )
+}
+
+function generateOne(kind: ProblemKind, options: ProblemOptions): WorksheetProblem {
   switch (kind) {
     case 'addition-no-carry':
       return randomAdditionNoCarry()
@@ -141,6 +199,11 @@ function generateOne(kind: ProblemKind): WorksheetProblem {
       return randomSubtractionNoBorrow()
     case 'subtraction-borrow':
       return randomSubtractionBorrow()
+    case 'multiplication':
+      return randomMultiplication(
+        options.multiplicationTopDigits,
+        options.multiplicationMultiplierDigits,
+      )
   }
 }
 
@@ -175,6 +238,7 @@ export function generateWorksheetProblems(
   count: number,
   kinds: ProblemKind[],
   used: Set<string>,
+  options: ProblemOptions,
 ): WorksheetProblem[] {
   if (kinds.length === 0 || count <= 0) {
     return []
@@ -186,7 +250,7 @@ export function generateWorksheetProblems(
 
   for (let attempt = 0; problems.length < count && attempt < maxAttempts; attempt++) {
     const kind = queue[problems.length]!
-    const problem = generateOne(kind)
+    const problem = generateOne(kind, options)
     const key = problemKey(problem)
     if (used.has(key)) {
       continue
@@ -197,7 +261,7 @@ export function generateWorksheetProblems(
 
   while (problems.length < count) {
     const kind = queue[problems.length] ?? kinds[0]!
-    problems.push(generateOne(kind))
+    problems.push(generateOne(kind, options))
   }
 
   return problems
@@ -211,7 +275,7 @@ export function generateWorksheets(
   const kinds = enabledKinds(options)
   const used = new Set<string>()
   return Array.from({ length: worksheetCount }, () =>
-    generateWorksheetProblems(problemsPerPage, kinds, used),
+    generateWorksheetProblems(problemsPerPage, kinds, used, options),
   )
 }
 

@@ -5,6 +5,7 @@ import {
   worksheetLetter,
   worksheetTitle,
   type ProblemKind,
+  type ProblemOptions,
   type WorksheetProblem,
 } from './problems'
 
@@ -68,10 +69,11 @@ function drawHeadings(
   ctx: CanvasRenderingContext2D,
   fontFamily: string,
   kinds: ProblemKind[],
+  options: ProblemOptions,
   letter: string | null,
   startY: number,
 ): number {
-  const title = worksheetTitle(kinds)
+  const title = worksheetTitle(kinds, options)
   const cx = mmToPx(PAGE_WIDTH_MM / 2)
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
@@ -88,6 +90,10 @@ function drawHeadings(
   return startY + mmToPx(16)
 }
 
+function digitCount(value: number): number {
+  return String(Math.abs(value)).length
+}
+
 function drawProblem(
   ctx: CanvasRenderingContext2D,
   fontFamily: string,
@@ -97,10 +103,20 @@ function drawProblem(
   width: number,
   height: number,
 ): void {
-  const fontSize = Math.min(height * 0.2, mmToPx(9))
-  const rightX = x + width * 0.72
-  const blockTop = y + height * 0.18
-  const row = fontSize * 1.28
+  const columnDigits = Math.max(
+    digitCount(problem.left),
+    digitCount(problem.right),
+    digitCount(problem.answer),
+  )
+  const longMultiplication =
+    problem.operator === '×' && digitCount(problem.right) >= 2
+  const fontSize = Math.min(
+    height * (longMultiplication ? 0.12 : 0.2),
+    mmToPx(longMultiplication ? 7 : 9),
+  )
+  const rightX = x + width * 0.8
+  const blockTop = y + height * (longMultiplication ? 0.1 : 0.18)
+  const row = fontSize * 1.22
 
   ctx.font = `600 ${fontSize}px ${fontFamily}`
   ctx.fillStyle = '#111111'
@@ -109,39 +125,49 @@ function drawProblem(
   ctx.fillText(String(problem.left), rightX, blockTop)
   ctx.fillText(String(problem.right), rightX, blockTop + row)
 
-  const twoDigits = ctx.measureText('00').width
+  const columnWidth = ctx.measureText('8'.repeat(columnDigits)).width
   ctx.textAlign = 'left'
   ctx.fillText(
     problem.operator,
-    rightX - twoDigits - fontSize * 0.7,
+    rightX - columnWidth - fontSize * 0.7,
     blockTop + row,
   )
 
-  const lineLeft = rightX - twoDigits - fontSize * 0.85
+  const lineLeft = rightX - columnWidth - fontSize * 0.85
   const lineRight = rightX + fontSize * 0.12
   ctx.strokeStyle = '#111111'
   ctx.lineWidth = Math.max(1.2, mmToPx(0.35))
-  ctx.beginPath()
-  ctx.moveTo(lineLeft, blockTop + row + fontSize * 0.62)
-  ctx.lineTo(lineRight, blockTop + row + fontSize * 0.62)
-  ctx.stroke()
 
-  ctx.beginPath()
-  ctx.moveTo(lineLeft, blockTop + row + fontSize * 2.15)
-  ctx.lineTo(lineRight, blockTop + row + fontSize * 2.15)
-  ctx.stroke()
+  const lineYs = longMultiplication
+    ? [
+        blockTop + row + fontSize * 0.62,
+        blockTop + row + fontSize * 0.62 + row * 2.15,
+        blockTop + row + fontSize * 0.62 + row * 3.35,
+      ]
+    : [
+        blockTop + row + fontSize * 0.62,
+        blockTop + row + fontSize * 2.15,
+      ]
+
+  for (const lineY of lineYs) {
+    ctx.beginPath()
+    ctx.moveTo(lineLeft, lineY)
+    ctx.lineTo(lineRight, lineY)
+    ctx.stroke()
+  }
 }
 
 export async function renderWorksheetJpeg(
   problems: WorksheetProblem[],
   kinds: ProblemKind[],
+  options: ProblemOptions,
   letter: string | null,
 ): Promise<string> {
   const fontFamily = await prepareFont()
   const { canvas, ctx } = createPageCanvas()
 
   let y = drawNameDate(ctx, fontFamily)
-  y = drawHeadings(ctx, fontFamily, kinds, letter, y)
+  y = drawHeadings(ctx, fontFamily, kinds, options, letter, y)
 
   const gridTop = y
   const gridBottom = mmToPx(CONTENT_BOTTOM_MM)
@@ -238,6 +264,7 @@ export async function renderAnswerSheetJpegs(
 export type GenerateWorksheetsPdfOptions = {
   worksheets: WorksheetProblem[][]
   kinds: ProblemKind[]
+  options: ProblemOptions
   includeAnswerSheet: boolean
   filename?: string
 }
@@ -245,8 +272,9 @@ export type GenerateWorksheetsPdfOptions = {
 export async function generateWorksheetsPdf({
   worksheets,
   kinds,
+  options,
   includeAnswerSheet,
-  filename = 'addition-subtraction-worksheets.pdf',
+  filename = 'calculation-worksheets.pdf',
 }: GenerateWorksheetsPdfOptions): Promise<void> {
   if (worksheets.length === 0 || worksheets.some((sheet) => sheet.length === 0)) {
     throw new Error('Choose at least one type of sum to generate a PDF.')
@@ -269,6 +297,7 @@ export async function generateWorksheetsPdf({
     const image = await renderWorksheetJpeg(
       worksheets[i]!,
       kinds,
+      options,
       showLetters ? worksheetLetter(i) : null,
     )
     pdf.addImage(image, 'JPEG', 0, 0, PAGE_WIDTH_MM, PAGE_HEIGHT_MM)

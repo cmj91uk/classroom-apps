@@ -12,21 +12,89 @@ import {
 import {
   enabledKinds,
   generateWorksheets,
+  type MultiplierDigits,
   type ProblemOptions,
+  type TopDigits,
 } from './lib/problems'
 
-const TITLE = 'Addition & Subtraction Worksheets'
-const DESCRIPTION = 'Two digit addition and subtraction worksheets'
+const TITLE = 'Calculation Worksheets'
+const DESCRIPTION =
+  'Column addition, subtraction and multiplication worksheets'
 
 const checkboxClass = 'size-4 rounded border-beige-dark/40 accent-ink'
+const radioClass = 'size-4 border-beige-dark/40 accent-ink'
 const fieldClass =
   'h-[3.25rem] w-full rounded-lg border border-beige-dark/40 bg-white px-3 text-sm text-ink outline-none ring-beige-dark/30 placeholder:text-muted/50 focus:ring-2'
 
-export function AdditionSubtractionWorksheets() {
+const TOP_DIGIT_OPTIONS: { value: TopDigits; label: string }[] = [
+  { value: 1, label: '1 digit' },
+  { value: 2, label: '2 digits' },
+  { value: 3, label: '3 digits' },
+]
+
+const MULTIPLIER_DIGIT_OPTIONS: { value: MultiplierDigits; label: string }[] = [
+  { value: 1, label: '1 digit' },
+  { value: 2, label: '2 digits' },
+]
+
+function RadioRow<T extends number>({
+  labelledBy,
+  name,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  labelledBy: string
+  name: string
+  value: T
+  options: { value: T; label: string }[]
+  disabled: boolean
+  onChange: (value: T) => void
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-labelledby={labelledBy}
+      className={`flex w-full justify-around gap-y-2 rounded-lg border-2 p-4 ${
+        disabled
+          ? 'border-beige-dark/20 bg-beige-dark/20 text-muted'
+          : 'border-beige-dark/30 bg-beige-dark/50'
+      }`}
+    >
+      {options.map((option) => {
+        const id = `${name}-${option.value}`
+        return (
+          <label
+            key={option.value}
+            htmlFor={id}
+            className={`flex items-center gap-2 text-sm ${disabled ? 'text-muted' : 'text-ink'}`}
+          >
+            <input
+              id={id}
+              type="radio"
+              name={name}
+              className={radioClass}
+              disabled={disabled}
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+            />
+            {option.label}
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
+export function CalculationWorksheets() {
   useDocumentTitle(TITLE)
 
   const additionId = useId()
   const subtractionId = useId()
+  const multiplicationId = useId()
+  const topDigitsId = useId()
+  const multiplierDigitsId = useId()
   const perPageId = useId()
   const answersId = useId()
   const countId = useId()
@@ -37,6 +105,11 @@ export function AdditionSubtractionWorksheets() {
   const [includeSubtraction, setIncludeSubtraction] = useState(false)
   const [subtractionNoBorrow, setSubtractionNoBorrow] = useState(true)
   const [subtractionBorrow, setSubtractionBorrow] = useState(false)
+  const [includeMultiplication, setIncludeMultiplication] = useState(false)
+  const [multiplicationTopDigits, setMultiplicationTopDigits] =
+    useState<TopDigits>(2)
+  const [multiplicationMultiplierDigits, setMultiplicationMultiplierDigits] =
+    useState<MultiplierDigits>(1)
   const [problemsPerPage, setProblemsPerPage] = useState(PROBLEMS_PER_PAGE_MIN)
   const [includeAnswerSheet, setIncludeAnswerSheet] = useState(false)
   const [worksheetCount, setWorksheetCount] = useState(1)
@@ -44,38 +117,40 @@ export function AdditionSubtractionWorksheets() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const options: ProblemOptions = {
-    additionNoCarry: includeAddition && additionNoCarry,
-    additionCarry: includeAddition && additionCarry,
-    subtractionNoBorrow: includeSubtraction && subtractionNoBorrow,
-    subtractionBorrow: includeSubtraction && subtractionBorrow,
-  }
-  const kinds = enabledKinds(options)
+  const options: ProblemOptions = useMemo(
+    () => ({
+      additionNoCarry: includeAddition && additionNoCarry,
+      additionCarry: includeAddition && additionCarry,
+      subtractionNoBorrow: includeSubtraction && subtractionNoBorrow,
+      subtractionBorrow: includeSubtraction && subtractionBorrow,
+      multiplication: includeMultiplication,
+      multiplicationTopDigits,
+      multiplicationMultiplierDigits,
+    }),
+    [
+      includeAddition,
+      additionNoCarry,
+      additionCarry,
+      includeSubtraction,
+      subtractionNoBorrow,
+      subtractionBorrow,
+      includeMultiplication,
+      multiplicationTopDigits,
+      multiplicationMultiplierDigits,
+    ],
+  )
+  const kinds = useMemo(() => enabledKinds(options), [options])
   const canGenerate = kinds.length > 0
   const additionMissingKind = includeAddition && !additionNoCarry && !additionCarry
   const subtractionMissingKind =
     includeSubtraction && !subtractionNoBorrow && !subtractionBorrow
 
   const previewProblems = useMemo(() => {
-    const nextOptions: ProblemOptions = {
-      additionNoCarry: includeAddition && additionNoCarry,
-      additionCarry: includeAddition && additionCarry,
-      subtractionNoBorrow: includeSubtraction && subtractionNoBorrow,
-      subtractionBorrow: includeSubtraction && subtractionBorrow,
-    }
-    if (enabledKinds(nextOptions).length === 0) {
+    if (kinds.length === 0) {
       return []
     }
-    return generateWorksheets(1, problemsPerPage, nextOptions)[0] ?? []
-  }, [
-    problemsPerPage,
-    includeAddition,
-    additionNoCarry,
-    additionCarry,
-    includeSubtraction,
-    subtractionNoBorrow,
-    subtractionBorrow,
-  ])
+    return generateWorksheets(1, problemsPerPage, options)[0] ?? []
+  }, [problemsPerPage, kinds, options])
 
   useEffect(() => {
     ensureDisplayFontsLoaded()
@@ -87,15 +162,10 @@ export function AdditionSubtractionWorksheets() {
     }
 
     let cancelled = false
-    const previewKinds = enabledKinds({
-      additionNoCarry: includeAddition && additionNoCarry,
-      additionCarry: includeAddition && additionCarry,
-      subtractionNoBorrow: includeSubtraction && subtractionNoBorrow,
-      subtractionBorrow: includeSubtraction && subtractionBorrow,
-    })
     renderWorksheetJpeg(
       previewProblems,
-      previewKinds,
+      kinds,
+      options,
       worksheetCount > 1 ? 'A' : null,
     )
       .then((url) => {
@@ -116,18 +186,16 @@ export function AdditionSubtractionWorksheets() {
     canGenerate,
     previewProblems,
     worksheetCount,
-    includeAddition,
-    additionNoCarry,
-    additionCarry,
-    includeSubtraction,
-    subtractionNoBorrow,
-    subtractionBorrow,
+    kinds,
+    options,
   ])
 
   async function handleDownload() {
     setError(null)
     if (!canGenerate) {
-      setError('Choose addition and/or subtraction, and at least one carrying option.')
+      setError(
+        'Choose addition, subtraction and/or multiplication, and at least one carrying option where needed.',
+      )
       return
     }
 
@@ -141,8 +209,9 @@ export function AdditionSubtractionWorksheets() {
       await generateWorksheetsPdf({
         worksheets,
         kinds,
+        options,
         includeAnswerSheet,
-        filename: 'addition-subtraction-worksheets.pdf',
+        filename: 'calculation-worksheets.pdf',
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not generate PDF.')
@@ -270,6 +339,64 @@ export function AdditionSubtractionWorksheets() {
           </fieldset>
         </section>
 
+        <section>
+          <fieldset className="flex flex-col gap-4">
+            <legend className="text-sm font-medium text-ink">
+              <label
+                htmlFor={multiplicationId}
+                className="flex items-center gap-2"
+              >
+                <input
+                  id={multiplicationId}
+                  type="checkbox"
+                  className={checkboxClass}
+                  checked={includeMultiplication}
+                  onChange={(event) => {
+                    setIncludeMultiplication(event.target.checked)
+                    setError(null)
+                  }}
+                />
+                Multiplication
+              </label>
+            </legend>
+            <div className="flex flex-col gap-2 pl-6">
+              <p id={topDigitsId} className="text-sm font-medium text-ink">
+                Top number
+              </p>
+              <RadioRow
+                labelledBy={topDigitsId}
+                name="multiplication-top-digits"
+                value={multiplicationTopDigits}
+                options={TOP_DIGIT_OPTIONS}
+                disabled={!includeMultiplication}
+                onChange={(value) => {
+                  setMultiplicationTopDigits(value)
+                  setError(null)
+                }}
+              />
+            </div>
+            <div className="flex flex-col gap-2 pl-6">
+              <p
+                id={multiplierDigitsId}
+                className="text-sm font-medium text-ink"
+              >
+                Multiplier
+              </p>
+              <RadioRow
+                labelledBy={multiplierDigitsId}
+                name="multiplication-multiplier-digits"
+                value={multiplicationMultiplierDigits}
+                options={MULTIPLIER_DIGIT_OPTIONS}
+                disabled={!includeMultiplication}
+                onChange={(value) => {
+                  setMultiplicationMultiplierDigits(value)
+                  setError(null)
+                }}
+              />
+            </div>
+          </fieldset>
+        </section>
+
         <section className="flex flex-col gap-3">
           <label htmlFor={perPageId} className="text-sm font-medium text-ink">
             Problems per page
@@ -348,7 +475,7 @@ export function AdditionSubtractionWorksheets() {
             <p className="rounded-lg border border-dashed border-beige-dark/50 bg-white/60 px-4 py-10 text-center text-muted">
               {canGenerate
                 ? 'Generating preview…'
-                : 'Choose addition and/or subtraction to preview a worksheet.'}
+                : 'Choose addition, subtraction and/or multiplication to preview a worksheet.'}
             </p>
           )}
         </section>
