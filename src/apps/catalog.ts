@@ -34,10 +34,10 @@ export const MINI_APPS: MiniApp[] = [
     path: '/apps/display-banners',
   },
   {
-    id: 'addition-subtraction-worksheets',
-    title: 'Addition & Subtraction Worksheets',
-    description: 'Two digit addition and subtraction worksheets',
-    path: '/apps/addition-subtraction-worksheets',
+    id: 'calculation-worksheets',
+    title: 'Calculation Worksheets',
+    description: 'Column addition, subtraction and multiplication worksheets',
+    path: '/apps/calculation-worksheets',
   },
   {
     id: 'part-part-whole-worksheets',
