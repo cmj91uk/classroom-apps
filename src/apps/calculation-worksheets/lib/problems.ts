@@ -9,6 +9,7 @@ export type Operator = '+' | '-' | '×'
 
 export type TopDigits = 1 | 2 | 3
 export type MultiplierDigits = 1 | 2
+export type AddSubDigits = 2 | 3 | 4
 
 export type WorksheetProblem = {
   left: number
@@ -26,6 +27,8 @@ export type ProblemOptions = {
   multiplication: boolean
   multiplicationTopDigits: TopDigits
   multiplicationMultiplierDigits: MultiplierDigits
+  additionDigits: AddSubDigits
+  subtractionDigits: AddSubDigits
 }
 
 export function enabledKinds(options: ProblemOptions): ProblemKind[] {
@@ -65,13 +68,16 @@ export function worksheetTitle(kinds: ProblemKind[], options: ProblemOptions): s
     return `Multiplying ${digitPhrase(options.multiplicationTopDigits)} by ${digitPhrase(options.multiplicationMultiplierDigits)} Numbers`
   }
   if (hasAdd && !hasSub && !hasMul) {
-    return 'Adding 2-digit Numbers'
+    return `Adding ${digitPhrase(options.additionDigits)} Numbers`
   }
   if (hasSub && !hasAdd && !hasMul) {
-    return 'Subtracting 2-digit Numbers'
+    return `Subtracting ${digitPhrase(options.subtractionDigits)} Numbers`
   }
   if (hasAdd && hasSub && !hasMul) {
-    return 'Adding and Subtracting 2-digit Numbers'
+    if (options.additionDigits === options.subtractionDigits) {
+      return `Adding and Subtracting ${digitPhrase(options.additionDigits)} Numbers`
+    }
+    return 'Adding and Subtracting Numbers'
   }
   if (hasAdd && hasMul && !hasSub) {
     return 'Adding and Multiplying Numbers'
@@ -129,54 +135,100 @@ function makeMultiplication(left: number, right: number): WorksheetProblem {
   }
 }
 
-function randomAdditionNoCarry(): WorksheetProblem {
-  const tensLeft = randomInt(1, 8)
-  const tensRight = randomInt(1, 9 - tensLeft)
-  const onesLeft = randomInt(0, 9)
-  const onesRight = randomInt(0, 9 - onesLeft)
-  return makeAddition(
-    tensLeft * 10 + onesLeft,
-    tensRight * 10 + onesRight,
-    'addition-no-carry',
-  )
+function fromDigits(digits: number[]): number {
+  return digits.reduce((total, digit) => total * 10 + digit, 0)
 }
 
-function randomAdditionCarry(): WorksheetProblem {
-  const onesLeft = randomInt(1, 9)
-  const onesRight = randomInt(10 - onesLeft, 9)
-  const tensLeft = randomInt(1, 9)
-  const tensRight = randomInt(1, 9)
-  return makeAddition(
-    tensLeft * 10 + onesLeft,
-    tensRight * 10 + onesRight,
-    'addition-carry',
-  )
+function digitAt(value: number, placeFromRight: number): number {
+  return Math.floor(Math.abs(value) / 10 ** placeFromRight) % 10
 }
 
-function randomSubtractionNoBorrow(): WorksheetProblem {
-  const tensLeft = randomInt(1, 9)
-  const tensRight = randomInt(1, tensLeft)
-  const onesLeft =
-    tensLeft === tensRight ? randomInt(1, 9) : randomInt(0, 9)
-  const onesMax = tensLeft === tensRight ? onesLeft - 1 : onesLeft
-  const onesRight = randomInt(0, onesMax)
-  return makeSubtraction(
-    tensLeft * 10 + onesLeft,
-    tensRight * 10 + onesRight,
-    'subtraction-no-borrow',
-  )
+function hasColumnBorrow(left: number, right: number, digitCount: number): boolean {
+  for (let i = 0; i < digitCount; i++) {
+    if (digitAt(left, i) < digitAt(right, i)) {
+      return true
+    }
+  }
+  return false
 }
 
-function randomSubtractionBorrow(): WorksheetProblem {
-  const tensLeft = randomInt(2, 9)
-  const tensRight = randomInt(1, tensLeft - 1)
+function randomAdditionNoCarry(digitCount: AddSubDigits): WorksheetProblem {
+  const left: number[] = []
+  const right: number[] = []
+  for (let i = 0; i < digitCount; i++) {
+    const leading = i === 0
+    const leftDigit = randomInt(leading ? 1 : 0, leading ? 8 : 9)
+    const rightDigit = randomInt(leading ? 1 : 0, 9 - leftDigit)
+    left.push(leftDigit)
+    right.push(rightDigit)
+  }
+  return makeAddition(fromDigits(left), fromDigits(right), 'addition-no-carry')
+}
+
+function randomAdditionCarry(digitCount: AddSubDigits): WorksheetProblem {
+  const carryIndex = randomInt(0, digitCount - 1)
+  const left: number[] = []
+  const right: number[] = []
+  for (let i = 0; i < digitCount; i++) {
+    const leading = i === 0
+    if (i === carryIndex) {
+      const leftDigit = randomInt(leading ? 1 : 1, 9)
+      const rightDigit = randomInt(Math.max(leading ? 1 : 0, 10 - leftDigit), 9)
+      left.push(leftDigit)
+      right.push(rightDigit)
+    } else {
+      const leftDigit = randomInt(leading ? 1 : 0, leading ? 8 : 9)
+      const rightDigit = randomInt(leading ? 1 : 0, 9 - leftDigit)
+      left.push(leftDigit)
+      right.push(rightDigit)
+    }
+  }
+  return makeAddition(fromDigits(left), fromDigits(right), 'addition-carry')
+}
+
+function randomSubtractionNoBorrow(digitCount: AddSubDigits): WorksheetProblem {
+  const left: number[] = []
+  const right: number[] = []
+  let equalSoFar = true
+  for (let i = 0; i < digitCount; i++) {
+    const leading = i === 0
+    const last = i === digitCount - 1
+    const leftMin = leading || (equalSoFar && last) ? 1 : 0
+    const leftDigit = randomInt(leftMin, 9)
+    const rightMin = leading ? 1 : 0
+    const rightMax = equalSoFar && last ? leftDigit - 1 : leftDigit
+    const rightDigit = randomInt(rightMin, Math.max(rightMin, rightMax))
+    left.push(leftDigit)
+    right.push(rightDigit)
+    if (rightDigit < leftDigit) {
+      equalSoFar = false
+    }
+  }
+  return makeSubtraction(fromDigits(left), fromDigits(right), 'subtraction-no-borrow')
+}
+
+function randomSubtractionBorrow(digitCount: AddSubDigits): WorksheetProblem {
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const left = randomNDigit(digitCount)
+    const right = randomNDigit(digitCount)
+    if (left > right && hasColumnBorrow(left, right, digitCount)) {
+      return makeSubtraction(left, right, 'subtraction-borrow')
+    }
+  }
+
+  const left: number[] = []
+  const right: number[] = []
+  for (let i = 0; i < digitCount - 1; i++) {
+    const leading = i === 0
+    const leftDigit = randomInt(leading ? 2 : 1, 9)
+    const rightDigit = randomInt(leading ? 1 : 0, Math.max(leading ? 1 : 0, leftDigit - (leading ? 1 : 0)))
+    left.push(leftDigit)
+    right.push(rightDigit)
+  }
   const onesLeft = randomInt(0, 8)
-  const onesRight = randomInt(onesLeft + 1, 9)
-  return makeSubtraction(
-    tensLeft * 10 + onesLeft,
-    tensRight * 10 + onesRight,
-    'subtraction-borrow',
-  )
+  left.push(onesLeft)
+  right.push(randomInt(onesLeft + 1, 9))
+  return makeSubtraction(fromDigits(left), fromDigits(right), 'subtraction-borrow')
 }
 
 function randomMultiplication(
@@ -192,13 +244,13 @@ function randomMultiplication(
 function generateOne(kind: ProblemKind, options: ProblemOptions): WorksheetProblem {
   switch (kind) {
     case 'addition-no-carry':
-      return randomAdditionNoCarry()
+      return randomAdditionNoCarry(options.additionDigits)
     case 'addition-carry':
-      return randomAdditionCarry()
+      return randomAdditionCarry(options.additionDigits)
     case 'subtraction-no-borrow':
-      return randomSubtractionNoBorrow()
+      return randomSubtractionNoBorrow(options.subtractionDigits)
     case 'subtraction-borrow':
-      return randomSubtractionBorrow()
+      return randomSubtractionBorrow(options.subtractionDigits)
     case 'multiplication':
       return randomMultiplication(
         options.multiplicationTopDigits,

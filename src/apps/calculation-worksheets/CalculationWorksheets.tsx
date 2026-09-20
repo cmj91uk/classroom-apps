@@ -12,6 +12,7 @@ import {
 import {
   enabledKinds,
   generateWorksheets,
+  type AddSubDigits,
   type MultiplierDigits,
   type ProblemOptions,
   type TopDigits,
@@ -25,6 +26,8 @@ const checkboxClass = 'size-4 rounded border-beige-dark/40 accent-ink'
 const radioClass = 'size-4 border-beige-dark/40 accent-ink'
 const fieldClass =
   'h-[3.25rem] w-full rounded-lg border border-beige-dark/40 bg-white px-3 text-sm text-ink outline-none ring-beige-dark/30 placeholder:text-muted/50 focus:ring-2'
+const barClass =
+  'flex w-full items-center justify-around gap-y-2 rounded-lg border-2 border-beige-dark/30 bg-beige-dark/50 p-4'
 
 const TOP_DIGIT_OPTIONS: { value: TopDigits; label: string }[] = [
   { value: 1, label: '1 digit' },
@@ -42,25 +45,19 @@ function RadioRow<T extends number>({
   name,
   value,
   options,
-  disabled,
   onChange,
 }: {
   labelledBy: string
   name: string
   value: T
   options: { value: T; label: string }[]
-  disabled: boolean
   onChange: (value: T) => void
 }) {
   return (
     <div
       role="radiogroup"
       aria-labelledby={labelledBy}
-      className={`flex w-full justify-around gap-y-2 rounded-lg border-2 p-4 ${
-        disabled
-          ? 'border-beige-dark/20 bg-beige-dark/20 text-muted'
-          : 'border-beige-dark/30 bg-beige-dark/50'
-      }`}
+      className={barClass}
     >
       {options.map((option) => {
         const id = `${name}-${option.value}`
@@ -68,14 +65,13 @@ function RadioRow<T extends number>({
           <label
             key={option.value}
             htmlFor={id}
-            className={`flex items-center gap-2 text-sm ${disabled ? 'text-muted' : 'text-ink'}`}
+            className="flex items-center gap-2 text-sm text-ink"
           >
             <input
               id={id}
               type="radio"
               name={name}
               className={radioClass}
-              disabled={disabled}
               checked={value === option.value}
               onChange={() => onChange(option.value)}
             />
@@ -87,11 +83,89 @@ function RadioRow<T extends number>({
   )
 }
 
+function CheckboxRow({
+  labelledBy,
+  options,
+}: {
+  labelledBy: string
+  options: {
+    id: string
+    label: string
+    checked: boolean
+    onChange: (checked: boolean) => void
+  }[]
+}) {
+  return (
+    <div
+      role="group"
+      aria-labelledby={labelledBy}
+      className={barClass}
+    >
+      {options.map((option) => (
+        <label
+          key={option.id}
+          htmlFor={option.id}
+          className="flex items-center gap-2 text-sm text-ink"
+        >
+          <input
+            id={option.id}
+            type="checkbox"
+            className={checkboxClass}
+            checked={option.checked}
+            onChange={(event) => option.onChange(event.target.checked)}
+          />
+          {option.label}
+        </label>
+      ))}
+    </div>
+  )
+}
+
+function DigitSlider({
+  id,
+  value,
+  onChange,
+}: {
+  id: string
+  value: AddSubDigits
+  onChange: (value: AddSubDigits) => void
+}) {
+  return (
+    <div className={`${barClass} gap-4`}>
+      <span className="w-4 text-sm text-muted">2</span>
+      <input
+        id={id}
+        type="range"
+        min={2}
+        max={4}
+        step={1}
+        value={value}
+        onChange={(event) =>
+          onChange(Number(event.target.value) as AddSubDigits)
+        }
+        className="w-full accent-ink"
+      />
+      <span className="w-4 text-sm text-muted">4</span>
+      <span className="w-16 shrink-0 text-right text-sm font-medium text-ink">
+        {value} digits
+      </span>
+    </div>
+  )
+}
+
 export function CalculationWorksheets() {
   useDocumentTitle(TITLE)
 
   const additionId = useId()
+  const additionKindId = useId()
+  const additionDigitsId = useId()
+  const additionNoCarryId = useId()
+  const additionCarryId = useId()
   const subtractionId = useId()
+  const subtractionKindId = useId()
+  const subtractionDigitsId = useId()
+  const subtractionNoBorrowId = useId()
+  const subtractionBorrowId = useId()
   const multiplicationId = useId()
   const topDigitsId = useId()
   const multiplierDigitsId = useId()
@@ -106,6 +180,8 @@ export function CalculationWorksheets() {
   const [subtractionNoBorrow, setSubtractionNoBorrow] = useState(true)
   const [subtractionBorrow, setSubtractionBorrow] = useState(false)
   const [includeMultiplication, setIncludeMultiplication] = useState(false)
+  const [additionDigits, setAdditionDigits] = useState<AddSubDigits>(2)
+  const [subtractionDigits, setSubtractionDigits] = useState<AddSubDigits>(2)
   const [multiplicationTopDigits, setMultiplicationTopDigits] =
     useState<TopDigits>(2)
   const [multiplicationMultiplierDigits, setMultiplicationMultiplierDigits] =
@@ -126,6 +202,8 @@ export function CalculationWorksheets() {
       multiplication: includeMultiplication,
       multiplicationTopDigits,
       multiplicationMultiplierDigits,
+      additionDigits,
+      subtractionDigits,
     }),
     [
       includeAddition,
@@ -137,6 +215,8 @@ export function CalculationWorksheets() {
       includeMultiplication,
       multiplicationTopDigits,
       multiplicationMultiplierDigits,
+      additionDigits,
+      subtractionDigits,
     ],
   )
   const kinds = useMemo(() => enabledKinds(options), [options])
@@ -239,8 +319,8 @@ export function CalculationWorksheets() {
       </header>
 
       <main className="flex flex-1 flex-col gap-8">
-        <section className="grid gap-6 sm:grid-cols-2">
-          <fieldset className="flex flex-col gap-3">
+        <section className="flex flex-col gap-6">
+          <fieldset className="flex flex-col gap-4">
             <legend className="text-sm font-medium text-ink">
               <label htmlFor={additionId} className="flex items-center gap-2">
                 <input
@@ -256,40 +336,62 @@ export function CalculationWorksheets() {
                 Addition
               </label>
             </legend>
-            <label className="flex items-center gap-2 pl-6 text-sm text-ink">
-              <input
-                type="checkbox"
-                className={checkboxClass}
-                disabled={!includeAddition}
-                checked={additionNoCarry}
-                onChange={(event) => {
-                  setAdditionNoCarry(event.target.checked)
-                  setError(null)
-                }}
-              />
-              Without carrying
-            </label>
-            <label className="flex items-center gap-2 pl-6 text-sm text-ink">
-              <input
-                type="checkbox"
-                className={checkboxClass}
-                disabled={!includeAddition}
-                checked={additionCarry}
-                onChange={(event) => {
-                  setAdditionCarry(event.target.checked)
-                  setError(null)
-                }}
-              />
-              With carrying
-            </label>
-            {additionMissingKind ? (
-              <p className="pl-6 text-sm text-red-700" role="alert">
-                Choose carrying, no carrying, or both.
-              </p>
+            {includeAddition ? (
+              <>
+                <div className="flex flex-col gap-2 pl-6">
+                  <p id={additionKindId} className="text-sm font-medium text-ink">
+                    Carrying
+                  </p>
+                  <CheckboxRow
+                    labelledBy={additionKindId}
+                    options={[
+                      {
+                        id: additionNoCarryId,
+                        label: 'Without carrying',
+                        checked: additionNoCarry,
+                        onChange: (checked) => {
+                          setAdditionNoCarry(checked)
+                          setError(null)
+                        },
+                      },
+                      {
+                        id: additionCarryId,
+                        label: 'With carrying',
+                        checked: additionCarry,
+                        onChange: (checked) => {
+                          setAdditionCarry(checked)
+                          setError(null)
+                        },
+                      },
+                    ]}
+                  />
+                  {additionMissingKind ? (
+                    <p className="text-sm text-red-700" role="alert">
+                      Choose carrying, no carrying, or both.
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-2 pl-6">
+                  <label
+                    htmlFor={additionDigitsId}
+                    className="text-sm font-medium text-ink"
+                  >
+                    Digits
+                  </label>
+                  <DigitSlider
+                    id={additionDigitsId}
+                    value={additionDigits}
+                    onChange={(value) => {
+                      setAdditionDigits(value)
+                      setError(null)
+                    }}
+                  />
+                </div>
+              </>
             ) : null}
           </fieldset>
 
-          <fieldset className="flex flex-col gap-3">
+          <fieldset className="flex flex-col gap-4">
             <legend className="text-sm font-medium text-ink">
               <label htmlFor={subtractionId} className="flex items-center gap-2">
                 <input
@@ -305,41 +407,64 @@ export function CalculationWorksheets() {
                 Subtraction
               </label>
             </legend>
-            <label className="flex items-center gap-2 pl-6 text-sm text-ink">
-              <input
-                type="checkbox"
-                className={checkboxClass}
-                disabled={!includeSubtraction}
-                checked={subtractionNoBorrow}
-                onChange={(event) => {
-                  setSubtractionNoBorrow(event.target.checked)
-                  setError(null)
-                }}
-              />
-              Without borrowing
-            </label>
-            <label className="flex items-center gap-2 pl-6 text-sm text-ink">
-              <input
-                type="checkbox"
-                className={checkboxClass}
-                disabled={!includeSubtraction}
-                checked={subtractionBorrow}
-                onChange={(event) => {
-                  setSubtractionBorrow(event.target.checked)
-                  setError(null)
-                }}
-              />
-              With borrowing
-            </label>
-            {subtractionMissingKind ? (
-              <p className="pl-6 text-sm text-red-700" role="alert">
-                Choose borrowing, no borrowing, or both.
-              </p>
+            {includeSubtraction ? (
+              <>
+                <div className="flex flex-col gap-2 pl-6">
+                  <p
+                    id={subtractionKindId}
+                    className="text-sm font-medium text-ink"
+                  >
+                    Borrowing
+                  </p>
+                  <CheckboxRow
+                    labelledBy={subtractionKindId}
+                    options={[
+                      {
+                        id: subtractionNoBorrowId,
+                        label: 'Without borrowing',
+                        checked: subtractionNoBorrow,
+                        onChange: (checked) => {
+                          setSubtractionNoBorrow(checked)
+                          setError(null)
+                        },
+                      },
+                      {
+                        id: subtractionBorrowId,
+                        label: 'With borrowing',
+                        checked: subtractionBorrow,
+                        onChange: (checked) => {
+                          setSubtractionBorrow(checked)
+                          setError(null)
+                        },
+                      },
+                    ]}
+                  />
+                  {subtractionMissingKind ? (
+                    <p className="text-sm text-red-700" role="alert">
+                      Choose borrowing, no borrowing, or both.
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-2 pl-6">
+                  <label
+                    htmlFor={subtractionDigitsId}
+                    className="text-sm font-medium text-ink"
+                  >
+                    Digits
+                  </label>
+                  <DigitSlider
+                    id={subtractionDigitsId}
+                    value={subtractionDigits}
+                    onChange={(value) => {
+                      setSubtractionDigits(value)
+                      setError(null)
+                    }}
+                  />
+                </div>
+              </>
             ) : null}
           </fieldset>
-        </section>
 
-        <section>
           <fieldset className="flex flex-col gap-4">
             <legend className="text-sm font-medium text-ink">
               <label
@@ -359,41 +484,43 @@ export function CalculationWorksheets() {
                 Multiplication
               </label>
             </legend>
-            <div className="flex flex-col gap-2 pl-6">
-              <p id={topDigitsId} className="text-sm font-medium text-ink">
-                Top number
-              </p>
-              <RadioRow
-                labelledBy={topDigitsId}
-                name="multiplication-top-digits"
-                value={multiplicationTopDigits}
-                options={TOP_DIGIT_OPTIONS}
-                disabled={!includeMultiplication}
-                onChange={(value) => {
-                  setMultiplicationTopDigits(value)
-                  setError(null)
-                }}
-              />
-            </div>
-            <div className="flex flex-col gap-2 pl-6">
-              <p
-                id={multiplierDigitsId}
-                className="text-sm font-medium text-ink"
-              >
-                Multiplier
-              </p>
-              <RadioRow
-                labelledBy={multiplierDigitsId}
-                name="multiplication-multiplier-digits"
-                value={multiplicationMultiplierDigits}
-                options={MULTIPLIER_DIGIT_OPTIONS}
-                disabled={!includeMultiplication}
-                onChange={(value) => {
-                  setMultiplicationMultiplierDigits(value)
-                  setError(null)
-                }}
-              />
-            </div>
+            {includeMultiplication ? (
+              <>
+                <div className="flex flex-col gap-2 pl-6">
+                  <p id={topDigitsId} className="text-sm font-medium text-ink">
+                    Top number
+                  </p>
+                  <RadioRow
+                    labelledBy={topDigitsId}
+                    name="multiplication-top-digits"
+                    value={multiplicationTopDigits}
+                    options={TOP_DIGIT_OPTIONS}
+                    onChange={(value) => {
+                      setMultiplicationTopDigits(value)
+                      setError(null)
+                    }}
+                  />
+                </div>
+                <div className="flex flex-col gap-2 pl-6">
+                  <p
+                    id={multiplierDigitsId}
+                    className="text-sm font-medium text-ink"
+                  >
+                    Multiplier
+                  </p>
+                  <RadioRow
+                    labelledBy={multiplierDigitsId}
+                    name="multiplication-multiplier-digits"
+                    value={multiplicationMultiplierDigits}
+                    options={MULTIPLIER_DIGIT_OPTIONS}
+                    onChange={(value) => {
+                      setMultiplicationMultiplierDigits(value)
+                      setError(null)
+                    }}
+                  />
+                </div>
+              </>
+            ) : null}
           </fieldset>
         </section>
 

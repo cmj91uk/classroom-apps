@@ -108,11 +108,13 @@ function drawProblem(
     digitCount(problem.right),
     digitCount(problem.answer),
   )
+  const wideColumn = columnDigits >= 5
   const longMultiplication =
     problem.operator === '×' && digitCount(problem.right) >= 2
+  const compact = longMultiplication || wideColumn
   const fontSize = Math.min(
-    height * (longMultiplication ? 0.12 : 0.2),
-    mmToPx(longMultiplication ? 7 : 9),
+    height * (compact ? 0.12 : 0.2),
+    mmToPx(compact ? 7 : 9),
   )
   const rightX = x + width * 0.8
   const blockTop = y + height * (longMultiplication ? 0.1 : 0.18)
