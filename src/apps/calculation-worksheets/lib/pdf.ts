@@ -138,16 +138,17 @@ function drawProblem(
   ctx.strokeStyle = '#111111'
   ctx.lineWidth = Math.max(1.2, mmToPx(0.35))
 
+  const operandLineY = blockTop + row + fontSize * 0.62
   const lineYs = longMultiplication
-    ? [
-        blockTop + row + fontSize * 0.62,
-        blockTop + row + fontSize * 0.62 + row * 2.15,
-        blockTop + row + fontSize * 0.62 + row * 3.35,
-      ]
-    : [
-        blockTop + row + fontSize * 0.62,
-        blockTop + row + fontSize * 2.15,
-      ]
+    ? (() => {
+        const totalLineY = y + height * 0.86
+        const answerLineY = Math.max(
+          operandLineY + row * 2.05,
+          totalLineY - fontSize * 1.45,
+        )
+        return [operandLineY, answerLineY, totalLineY]
+      })()
+    : [operandLineY, operandLineY + fontSize * 1.53]
 
   for (const lineY of lineYs) {
     ctx.beginPath()
