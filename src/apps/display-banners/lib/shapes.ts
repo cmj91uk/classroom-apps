@@ -4,6 +4,7 @@ export type BannerShapeId =
   | 'oval'
   | 'cloud'
   | 'star'
+  | 'speech-bubble'
 
 export type BannerShape = {
   id: BannerShapeId
@@ -36,6 +37,11 @@ export const BANNER_SHAPES: BannerShape[] = [
     id: 'star',
     label: 'Star',
     description: 'Five-point star',
+  },
+  {
+    id: 'speech-bubble',
+    label: 'Speech bubble',
+    description: 'Rounded bubble with pointer tail',
   },
 ]
 
@@ -84,6 +90,62 @@ export function starPathD(
   return `${coords.join(' ')} Z`
 }
 
+export function speechBubbleTailHeight(bounds: Rect): number {
+  return Math.min(bounds.height * 0.22, Math.max(12, bounds.height * 0.16))
+}
+
+export function speechBubblePathD(bounds: Rect): string {
+  const tailHeight = speechBubbleTailHeight(bounds)
+  const bodyHeight = Math.max(1, bounds.height - tailHeight)
+  const r = Math.min(
+    bounds.width / 2,
+    bodyHeight / 2,
+    Math.min(bounds.width, bodyHeight) * 0.22,
+  )
+
+  const minTailLeft = bounds.x + r + 2
+  const maxTailRight = bounds.x + bounds.width - r - 2
+  const preferredTailLeft = bounds.x + Math.max(r * 0.8, bounds.width * 0.18)
+  const tailLeftX = Math.min(
+    maxTailRight - 10,
+    Math.max(minTailLeft, preferredTailLeft),
+  )
+  const preferredTailWidth = Math.min(
+    bounds.width * 0.18,
+    Math.max(tailHeight * 1.1, 16),
+  )
+  const tailWidth = Math.max(
+    8,
+    Math.min(preferredTailWidth, maxTailRight - tailLeftX),
+  )
+  const tailRightX = tailLeftX + tailWidth
+
+  const tailTipX =
+    bounds.x + Math.max(4, Math.min(tailLeftX - 4, bounds.width * 0.08))
+  const tailTipY = bounds.y + bounds.height
+
+  const cp1x = tailRightX - tailWidth * 0.2
+  const cp1y = bounds.y + bodyHeight + tailHeight * 0.5
+  const cp2x = tailLeftX
+  const cp2y = bounds.y + bodyHeight + tailHeight * 0.6
+
+  return [
+    `M ${(bounds.x + r).toFixed(2)} ${bounds.y.toFixed(2)}`,
+    `L ${(bounds.x + bounds.width - r).toFixed(2)} ${bounds.y.toFixed(2)}`,
+    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${(bounds.x + bounds.width).toFixed(2)} ${(bounds.y + r).toFixed(2)}`,
+    `L ${(bounds.x + bounds.width).toFixed(2)} ${(bounds.y + bodyHeight - r).toFixed(2)}`,
+    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${(bounds.x + bounds.width - r).toFixed(2)} ${(bounds.y + bodyHeight).toFixed(2)}`,
+    `L ${tailRightX.toFixed(2)} ${(bounds.y + bodyHeight).toFixed(2)}`,
+    `Q ${cp1x.toFixed(2)} ${cp1y.toFixed(2)} ${tailTipX.toFixed(2)} ${tailTipY.toFixed(2)}`,
+    `Q ${cp2x.toFixed(2)} ${cp2y.toFixed(2)} ${tailLeftX.toFixed(2)} ${(bounds.y + bodyHeight).toFixed(2)}`,
+    `L ${(bounds.x + r).toFixed(2)} ${(bounds.y + bodyHeight).toFixed(2)}`,
+    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${bounds.x.toFixed(2)} ${(bounds.y + bodyHeight - r).toFixed(2)}`,
+    `L ${bounds.x.toFixed(2)} ${(bounds.y + r).toFixed(2)}`,
+    `A ${r.toFixed(2)} ${r.toFixed(2)} 0 0 1 ${(bounds.x + r).toFixed(2)} ${bounds.y.toFixed(2)}`,
+    'Z',
+  ].join(' ')
+}
+
 function containRect(
   frame: Rect,
   contentWidth: number,
@@ -128,6 +190,19 @@ export function getShapeBounds(shapeId: BannerShapeId, frame: Rect): Rect {
 
 /** Inner box used to fit text, relative to the drawn shape. */
 export function getTextBox(shapeId: BannerShapeId, shapeBounds: Rect): Rect {
+  if (shapeId === 'speech-bubble') {
+    const tailHeight = speechBubbleTailHeight(shapeBounds)
+    const bodyHeight = Math.max(0, shapeBounds.height - tailHeight)
+    const padX = shapeBounds.width * 0.12
+    const padY = bodyHeight * 0.14
+    return {
+      x: shapeBounds.x + padX,
+      y: shapeBounds.y + padY,
+      width: Math.max(0, shapeBounds.width - padX * 2),
+      height: Math.max(0, bodyHeight - padY * 2),
+    }
+  }
+
   const inset =
     shapeId === 'star'
       ? 0.32
@@ -236,6 +311,11 @@ export function strokeBannerShape(
     return
   }
 
+  if (shapeId === 'speech-bubble') {
+    ctx.stroke(new Path2D(speechBubblePathD(inner)))
+    return
+  }
+
   const scale = Math.min(
     inner.width / CLOUD_VIEWBOX.width,
     inner.height / CLOUD_VIEWBOX.height,
@@ -275,6 +355,10 @@ export function bannerShapeSvg(
 
   if (shapeId === 'star') {
     return `<path d="${starPathD(inner.x + inner.width / 2, inner.y + inner.height / 2, inner.width / 2)}" ${strokeAttrs(color, strokeWidth)} />`
+  }
+
+  if (shapeId === 'speech-bubble') {
+    return `<path d="${speechBubblePathD(inner)}" ${strokeAttrs(color, strokeWidth)} />`
   }
 
   const scale = Math.min(
