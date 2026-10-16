@@ -1,0 +1,37 @@
+# Pings the Classroom Apps Supabase project so it is not paused for inactivity.
+# Adapted from https://github.com/travisvn/supabase-inactive-fix
+#
+# Required repository secret:
+#   SUPABASE_ANON_KEY  — Project Settings > API > anon / publishable key
+#
+# Optional repository secret (the script defaults to the Classroom Apps URL):
+#   SUPABASE_URL
+
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Monday and Thursday at midnight UTC
+    - cron: '0 0 * * 1,4'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+
+      - name: Insert keep-alive heartbeat
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: node scripts/supabase-keep-alive.mjs
