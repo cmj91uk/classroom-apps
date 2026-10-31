@@ -22,6 +22,7 @@ import {
   type BannerItem,
   type BannersPerPage,
 } from './lib/pdf'
+import { copyBannerToClipboard } from './lib/clipboard'
 import { buildBannerSvg } from './lib/preview'
 import { DEFAULT_SHAPE_ID, getBannerShape, type BannerShapeId } from './lib/shapes'
 
@@ -65,6 +66,8 @@ export function DisplayBanners() {
   const [shapeId, setShapeId] = useState<BannerShapeId>(DEFAULT_SHAPE_ID)
   const [shapeColor, setShapeColor] = useState(DEFAULT_SHAPE_COLOR)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const selectedFont = getDisplayFont(fontOptionId)
@@ -89,6 +92,36 @@ export function DisplayBanners() {
       ),
     )
     setError(null)
+  }
+
+  async function handleCopyImage() {
+    setError(null)
+    const targetBanner =
+      banners.find((banner) => banner.text.trim().length > 0) ?? banners[0]
+    if (!targetBanner || !targetBanner.text.trim()) {
+      return
+    }
+
+    setIsCopying(true)
+    try {
+      await copyBannerToClipboard({
+        text: targetBanner.text,
+        shapeId,
+        fontFamily: selectedFont.family,
+        shapeColor,
+        textColor: targetBanner.textColor,
+      })
+      setCopied(true)
+      setTimeout(() => {
+        setCopied(false)
+      }, 2000)
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not copy banner image.',
+      )
+    } finally {
+      setIsCopying(false)
+    }
   }
 
   async function handleDownload() {
@@ -335,14 +368,29 @@ export function DisplayBanners() {
             page · {selectedFont.label}
           </p>
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
-            <button
-              type="button"
-              disabled={!hasText || isGenerating}
-              onClick={handleDownload}
-              className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white transition enabled:hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {isGenerating ? 'Generating PDF…' : 'Download PDF'}
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                disabled={!hasText || isCopying}
+                onClick={handleCopyImage}
+                title="Copy current shape and text to clipboard with transparent background"
+                className="rounded-lg border border-beige-dark/40 bg-white px-5 py-3 text-sm font-semibold text-ink transition enabled:hover:bg-beige/40 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {copied
+                  ? 'Copied!'
+                  : isCopying
+                    ? 'Copying…'
+                    : 'Copy image (transparent)'}
+              </button>
+              <button
+                type="button"
+                disabled={!hasText || isGenerating}
+                onClick={handleDownload}
+                className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white transition enabled:hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {isGenerating ? 'Generating PDF…' : 'Download PDF'}
+              </button>
+            </div>
             {error ? (
               <p className="text-sm text-red-700" role="alert">
                 {error}
